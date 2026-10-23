@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 st.set_page_config(page_title="LH -> DRN Model", layout="wide")
 
 st.title("Modèle LH -> DRN (Wilson-Cowan)")
-st.write("Ajustez les poids synaptiques pour observer la réponse des neurones 5HT. Les graphiques se mettent à jour automatiquement.")
+st.write("Ajustez les poids synaptiques et cliquez sur le bouton pour lancer la simulation.")
 
-# Initialize session state for default values if not already present
+# Default weight values
 default_weights = {
     'ac': 4.0,
     'ad': 1.0,
@@ -23,32 +23,42 @@ default_weights = {
     'de': 2.0,
 }
 
+# Initialize session state for weights
 if 'weights' not in st.session_state:
     st.session_state.weights = default_weights.copy()
 
 def reset_defaults():
     st.session_state.weights = default_weights.copy()
 
-# Sidebar for weights
-st.sidebar.header("Synaptic weights (w)")
+# Sidebar form so values don't trigger calculations until submitted
+with st.sidebar:
+    st.header("Synaptic weights (w)")
+    
+    # Reset button outside or above the form
+    st.button("Initial values", on_click=reset_defaults, use_container_width=True)
+    
+    with st.form("simulation_form"):
+        w = {
+            'ac': st.number_input('LH_e -> DRN_e (ac)', value=st.session_state.weights['ac']),
+            'ad': st.number_input('LH_e -> DRN_i (ad)', value=st.session_state.weights['ad']),
+            'ae': st.number_input('LH_e -> 5HT (ae)', value=st.session_state.weights['ae']),
+            'bc': st.number_input('LH_i -> DRN_e (bc)', value=st.session_state.weights['bc']),
+            'bd': st.number_input('LH_i -> DRN_i (bd)', value=st.session_state.weights['bd']),
+            'be': st.number_input('LH_i -> 5HT (be)', value=st.session_state.weights['be']),
+            'cc': st.number_input('DRN_e -> DRN_e (cc)', value=st.session_state.weights['cc']),
+            'cd': st.number_input('DRN_e -> DRN_i (cd)', value=st.session_state.weights['cd']),
+            'ce': st.number_input('DRN_e -> 5HT (ce)', value=st.session_state.weights['ce']),
+            'dc': st.number_input('DRN_i -> DRN_e (dc)', value=st.session_state.weights['dc']),
+            'dd': st.number_input('DRN_i -> DRN_i (dd)', value=st.session_state.weights['dd']),
+            'de': st.number_input('DRN_i -> 5HT (de)', value=st.session_state.weights['de']),
+        }
+        
+        # Submit button matching your MATLAB "Simulate and trace graph"
+        submitted = st.form_submit_button("Simulate and trace graph", use_container_width=True)
 
-# Reset button at the top of the sidebar
-st.sidebar.button("Initial values (Reset)", on_click=reset_defaults)
-
-w = {
-    'ac': st.sidebar.number_input('LH_e -> DRN_e (ac)', value=st.session_state.weights['ac'], key='ac'),
-    'ad': st.sidebar.number_input('LH_e -> DRN_i (ad)', value=st.session_state.weights['ad'], key='ad'),
-    'ae': st.sidebar.number_input('LH_e -> 5HT (ae)', value=st.session_state.weights['ae'], key='ae'),
-    'bc': st.sidebar.number_input('LH_i -> DRN_e (bc)', value=st.session_state.weights['bc'], key='bc'),
-    'bd': st.sidebar.number_input('LH_i -> DRN_i (bd)', value=st.session_state.weights['bd'], key='bd'),
-    'be': st.sidebar.number_input('LH_i -> 5HT (be)', value=st.session_state.weights['be'], key='be'),
-    'cc': st.sidebar.number_input('DRN_e -> DRN_e (cc)', value=st.session_state.weights['cc'], key='cc'),
-    'cd': st.sidebar.number_input('DRN_e -> DRN_i (cd)', value=st.session_state.weights['cd'], key='cd'),
-    'ce': st.sidebar.number_input('DRN_e -> 5HT (ce)', value=st.session_state.weights['ce'], key='ce'),
-    'dc': st.sidebar.number_input('DRN_i -> DRN_e (dc)', value=st.session_state.weights['dc'], key='dc'),
-    'dd': st.sidebar.number_input('DRN_i -> DRN_i (dd)', value=st.session_state.weights['dd'], key='dd'),
-    'de': st.sidebar.number_input('DRN_i -> 5HT (de)', value=st.session_state.weights['de'], key='de'),
-}
+# Update session state if form was submitted
+if submitted:
+    st.session_state.weights = w
 
 # Fixed parameters
 p_a = 4.0
@@ -87,12 +97,12 @@ def simulate(ww, w_bd_override=None):
         fe_results.append(fe)
     return fe_results
 
-# Run simulations
+# Run simulations using the active weights in session state
 x_vals = np.linspace(0, 1, 101)
-ctrl_res = simulate(w)
-nd_res = simulate(w, w_bd_override=0.0)
+ctrl_res = simulate(st.session_state.weights)
+nd_res = simulate(st.session_state.weights, w_bd_override=0.0)
 
-# Status info like your MATLAB app
+# Status info
 st.info("CTRL : LH_i->DRN_i ajustable | without disinh : LH_i->DRN_i = 0")
 
 # Plotting
